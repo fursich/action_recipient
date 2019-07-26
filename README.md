@@ -1,6 +1,18 @@
+![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/fursich/action_recipient?color=green&style=plastic)
+![GitHub](https://img.shields.io/github/license/fursich/action_recipient?color=green&style=plastic)
+![Travis (.org)](https://img.shields.io/travis/fursich/action_recipient?color=green&style=plastic)
+
 # ActionRecipient
 
-Overwrites email recipients with ActionMailer emails to prevent accidental delivery in non-production environments.
+This gem overwrites email recipients addresses sent by ActionMailer , so that to prevent your application from dispatching emails accidentally to existing addresses, expecially your users or clients in non-production environments.
+
+### IMPORTANT NOTES
+
+* this gem is developed and tested carefully, but it does NOT mean this is 100% reliable. Please use this at your own risks, and test carefully before use.
+
+* It HAS NO EFFECT on the Non-Actionmailer emails (i.e. if the emails are delivered out of ActionMailer's control)
+
+* for example, if you are sending batch emails directly via Mailgun API, the gem cannot overwrite its addresses - please consider managing recipient addresses on your own.
 
 ## Installation
 
@@ -20,7 +32,77 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+### Getting Started
+
+Let's say you want to trap all the emails that are sent out in staging environment. You need to replace outgoing emails' addresses to your work address `your_address_to_redirect@gmail.com`, with a few exception such as `my_personal_adddress@example.com`
+
+In `config/initializers`, register ActionRecipient as follows:
+
+```ruby
+# config/initializers/action_recipient.rb
+
+if Rails.env.staging? # works only in staging environment
+
+  ActionRecipient.configure do |config|
+    config.format = 'your_address_to_redirect+%s@gmail.com'
+
+    config.whitelist = [
+      'safe_address@example.com',
+      'my_personal_adddress@example.com'
+    ]
+  end
+
+  ActionMailer::Base.register_interceptor(ActionRecipient::Interceptor)
+end
+```
+
+Then, if you send an email to `admin@your_client.com` using ActionMailer, this gem traps it and overwrites its addresses as `your_address_to_redirect+admin_at_your_client.com@gmail.com`.
+
+You can find the email at your mailbox in `your_address_to_redirect@gmail.com`, just as your client would do if it were in production - with the only difference in its `to` address that are slightly modified.
+
+### Detailed Settings
+
+1. set your "safe address" to indicate ActionRecipient an address to redirect outgoing emails:
+
+```ruby
+  ActionRecipient.configure do |config|
+    config.format = 'your_address_to_rediredt+%s@gmail.com'
+  end
+```
+
+If you add **%s** in the format, it is automatically replaced with the original addresses after a few modifications. (see overwriting rules for deatils)
+
+**DO NOT FORGET to specify a format**, otherwise your email addresses are not properly transformed, and your emails will not be successfully delivered.
+
+2. you could also set a collection of whitelisted mails:
+
+```ruby
+  ActionRecipient.configure do |config|
+    config.whitelist = [
+      'my_personal_address@example.com',
+      'my_colleagues_address@example.com'
+    ]
+  end
+```
+
+Whitelisted emails addresses are not overwritten, thus can be delivered as usual.
+
+3. register ActionRecipient as the interceptor
+
+```ruby
+  ActionMailer::Base.register_interceptor(ActionRecipient::Interceptor)
+```
+
+And you are good to go!
+
+### Overwriting Rules
+
+The original address is being transformed as follows:
+
+- `@` is replaced with `_at_`
+- any alphabetical/numeric charactors are preserved
+- any dots `.` and underscores `_` are preserved as well
+- any other charactors are replaced with hyphens `-`
 
 ## Development
 
@@ -30,7 +112,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/action_recipient.
+Bug reports and pull requests are welcome on GitHub at https://github.com/fursich/action_recipient.
 
 ## License
 
