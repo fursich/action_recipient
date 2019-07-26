@@ -14,14 +14,30 @@ module ActionRecipient
   end
 
   class Configuration
-    attr_writer :whitelist, :format
+    attr_writer :format
 
     def whitelist
-      @whitelist ||= []
+      @whitelist ||= Whitelist.new
     end
 
     def format
       @format ||= '%s'
+    end
+
+    class Whitelist
+      attr_writer :domains, :addresses
+
+      def [](key)
+        public_send(key) if %i[domains addresses].include? key
+      end
+
+      def domains
+        @domains ||= []
+      end
+
+      def addresses
+        @addresses ||= []
+      end
     end
   end
 end

@@ -19,7 +19,7 @@ module ActionRecipient
       end
 
       def whitelisted?(email)
-        whitelist.include? email
+        whitelist.addresses.include?(email) || whitelist.domains.include?(domain_for(email))
       end
 
       def whitelist
@@ -28,6 +28,10 @@ module ActionRecipient
 
       def format
         ActionRecipient.config.format
+      end
+
+      def domain_for(email)
+        email.split('@').last
       end
     end
   end

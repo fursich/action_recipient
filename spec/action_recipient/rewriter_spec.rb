@@ -59,7 +59,7 @@ RSpec.describe ActionRecipient::Rewriter do
 
       context 'when partially whitelisted' do
         before do
-          ActionRecipient.config.whitelist = [to_addresses.first, cc_addresses.first, bcc_addresses.first]
+          ActionRecipient.config.whitelist.addresses = [to_addresses.first, cc_addresses.first, bcc_addresses.first]
         end
 
         let(:converted_addresses) { [
@@ -72,7 +72,7 @@ RSpec.describe ActionRecipient::Rewriter do
 
       context 'when totally whitelisted' do
         before do
-          ActionRecipient.config.whitelist = to_addresses
+          ActionRecipient.config.whitelist.addresses = to_addresses
         end
 
         it_behaves_like 'leaving relevant addresses as-is'
@@ -94,7 +94,7 @@ RSpec.describe ActionRecipient::Rewriter do
 
       context 'when partially whitelisted' do
         before do
-          ActionRecipient.config.whitelist = [to_addresses.first, cc_addresses.first, bcc_addresses.first]
+          ActionRecipient.config.whitelist.addresses = [to_addresses.first, cc_addresses.first, bcc_addresses.first]
         end
 
         let(:converted_addresses) { [
@@ -107,7 +107,7 @@ RSpec.describe ActionRecipient::Rewriter do
 
       context 'when totally whitelisted' do
         before do
-          ActionRecipient.config.whitelist = cc_addresses
+          ActionRecipient.config.whitelist.domains = %w[foo.jp bar.jp]
         end
 
         it_behaves_like 'leaving relevant addresses as-is'
@@ -129,7 +129,7 @@ RSpec.describe ActionRecipient::Rewriter do
 
       context 'when partially whitelisted' do
         before do
-          ActionRecipient.config.whitelist = [to_addresses.first, cc_addresses.first, bcc_addresses.first]
+          ActionRecipient.config.whitelist.addresses = [to_addresses.first, cc_addresses.first, bcc_addresses.first]
         end
 
         let(:converted_addresses) { [
@@ -142,7 +142,7 @@ RSpec.describe ActionRecipient::Rewriter do
 
       context 'when totally whitelisted' do
         before do
-          ActionRecipient.config.whitelist = bcc_addresses
+          ActionRecipient.config.whitelist.addresses = bcc_addresses
         end
 
         it_behaves_like 'leaving relevant addresses as-is'
@@ -173,9 +173,9 @@ RSpec.describe ActionRecipient::Rewriter do
     let(:address) { 'foo@example.com' }
     it { is_expected.to be false }
 
-    context 'when custom list is given' do
+    context 'when address list is specified' do
       before do
-        ActionRecipient.config.whitelist = custom_whitelist
+        ActionRecipient.config.whitelist.addresses = custom_whitelist
       end
 
       let(:custom_whitelist) { ['foo@example.com', 'bar@example.com'] }
@@ -190,19 +190,56 @@ RSpec.describe ActionRecipient::Rewriter do
         it { is_expected.to be false }
       end
     end
+
+    context 'when domain list is specified' do
+      before do
+        ActionRecipient.config.whitelist.domains = custom_whitelist
+      end
+
+      let(:custom_whitelist) { %w[foo.com bar.jp] }
+
+      context 'with a whitelisted address' do
+        let(:address) { 'foo@foo.com' }
+        it { is_expected.to be true }
+      end
+
+      context 'with non-whitelisted address' do
+        let(:address) { 'foo@foo.jp' }
+        it { is_expected.to be false }
+      end
+    end
   end
 
   describe '.whitelist' do
     subject { described_class.whitelist }
-    it { is_expected.to eq [] }
+    it { is_expected.to be_an_instance_of ActionRecipient::Configuration::Whitelist }
 
-    context 'when custom list is given' do
-      before do
-        ActionRecipient.config.whitelist = custom_whitelist
+    describe '#addresses' do
+      subject { described_class.whitelist.addresses }
+      it { is_expected.to eq [] }
+
+      context 'when custom list is given' do
+        before do
+          ActionRecipient.config.whitelist.addresses = custom_whitelist
+        end
+
+        let(:custom_whitelist) { ['foo@example.com', 'bar@example.com'] }
+        it { is_expected.to eq custom_whitelist }
       end
+    end
 
-      let(:custom_whitelist) { ['foo@example.com', 'bar@example.com'] }
-      it { is_expected.to eq custom_whitelist }
+    describe '#domains' do
+      subject { described_class.whitelist.domains }
+      it { is_expected.to eq [] }
+
+      context 'when custom list is given' do
+        before do
+          ActionRecipient.config.whitelist.domains = custom_whitelist
+        end
+
+        let(:custom_whitelist) { ['foo@example.com', 'bar@example.com'] }
+        it { is_expected.to eq custom_whitelist }
+      end
     end
   end
  
