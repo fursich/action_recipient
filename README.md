@@ -4,15 +4,12 @@
 
 # ActionRecipient
 
-This gem overwrites email recipients addresses sent by ActionMailer , so that to prevent your application from dispatching emails accidentally to existing addresses, expecially your users or clients in non-production environments.
+This gem overwrites email recipients addresses sent with ActionMailer.
+It helps you prevent your application from dispatching emails accidentally to existing addresses, expecially your users or clients in non-production environments.
 
-### IMPORTANT NOTES
+* althugh this gem has been developed and tested carefully, but there is no guarantee that this is 100% reliable. Please use this at your own risks, and test carefully before use.
 
-* this gem is developed and tested carefully, but it does NOT mean this is 100% reliable. Please use this at your own risks, and test carefully before use.
-
-* It HAS NO EFFECT on the Non-Actionmailer emails (i.e. if the emails are delivered out of ActionMailer's control)
-
-* for example, if you are sending batch emails directly via Mailgun API, the gem cannot overwrite its addresses - please consider managing recipient addresses on your own.
+* Non-Actionmailer emails cannot be blocked nor redirected, as it works based on ActionMailer's interceptor mechanism.
 
 ## Installation
 
@@ -34,14 +31,16 @@ Or install it yourself as:
 
 ### Getting Started
 
-Let's say you want to trap all the emails that are sent out in staging environment. You need to replace outgoing emails' addresses to your work address `your_address_to_redirect@gmail.com`, with a few exception such as `my_personal_adddress@example.com`
+Let's say, you need to trap all the emails that are sent out in staging environment.
 
-In `config/initializers`, register ActionRecipient as follows:
+More specifically, you wish to replace outgoing emails' addresses to your work address `your_address_to_redirect@gmail.com`, with a few exception such as `my_personal_adddress@example.com`.
+
+Set up ActionRecipient as follows, and you're done.
 
 ```ruby
 # config/initializers/action_recipient.rb
 
-if Rails.env.staging? # works only in staging environment
+if Rails.env.staging? # effective only in staging environment
 
   ActionRecipient.configure do |config|
     config.format = 'your_address_to_redirect+%s@gmail.com'
