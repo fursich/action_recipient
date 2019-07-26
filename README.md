@@ -46,7 +46,7 @@ if Rails.env.staging? # works only in staging environment
   ActionRecipient.configure do |config|
     config.format = 'your_address_to_redirect+%s@gmail.com'
 
-    config.whitelist = [
+    config.whitelist.addresses = [
       'safe_address@example.com',
       'my_personal_adddress@example.com'
     ]
@@ -74,18 +74,28 @@ If you add **%s** in the format, it is automatically replaced with the original 
 
 **DO NOT FORGET to specify a format**, otherwise your email addresses are not properly transformed, and your emails will not be successfully delivered.
 
-2. you could also set a collection of whitelisted mails:
+2. you could also set a collection of whitelisted addresses and/or domains:
 
 ```ruby
   ActionRecipient.configure do |config|
-    config.whitelist = [
+    config.whitelist.addresses = [
       'my_personal_address@example.com',
       'my_colleagues_address@example.com'
+    ]
+
+    config.whitelist.domains = [
+      'my_office_domain.com',
+      'subdomain.my_office_domain.com'
     ]
   end
 ```
 
 Whitelisted emails addresses are not overwritten, thus can be delivered as usual.
+
+IMPORTANT:
+With current version (version <~ 0.2.0) "domains" are the last part of email addresses after `@`, and matched with original email address literally on word-to-word basis.
+
+So whitelisted domains such as `bar.com` does NOT whitelist emails to subdomains like `somebody@foo.bar.com` (therefore redirected).
 
 3. register ActionRecipient as the interceptor
 
