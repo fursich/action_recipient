@@ -4,10 +4,12 @@
 
 # ActionRecipient
 
-This gem overwrites email recipients addresses sent with ActionMailer.
-It helps you prevent your application from dispatching emails accidentally to existing addresses, expecially your users or clients in non-production environments.
+This gem dynamically overwrites email recipients addresses sent with ActionMailer.
+With this gem, you no longer have to worry about your application delivering accidental emails to your real customer in non-production environments.
 
-* althugh this gem has been developed and tested carefully, but there is no guarantee that this is 100% reliable. Please use this at your own risks, and test carefully before use.
+It is particularily helpful if you are using gmail account for your staging mail, as it can append original recipients information in the address. (See [below](#Using Gmail) for details)
+
+* although this gem has been developed and tested carefully, but there is no guarantee that this is 100% reliable. Please use this at your own risks, and test carefully before use.
 
 * Non-Actionmailer emails cannot be blocked nor redirected, as it works based on ActionMailer's interceptor mechanism.
 
@@ -31,11 +33,7 @@ Or install it yourself as:
 
 ### Getting Started
 
-Let's say, you need to trap all the emails that are sent out in staging environment.
-
-More specifically, you wish to replace outgoing emails' addresses to your work address `your_address_to_redirect@gmail.com`, with a few exception such as `my_personal_adddress@example.com`.
-
-Set up ActionRecipient as follows, and you're done.
+Set up ActionRecipient as follows to prevent outgoing mails in your staging environment.
 
 ```ruby
 # config/initializers/action_recipient.rb
@@ -43,8 +41,30 @@ Set up ActionRecipient as follows, and you're done.
 if Rails.env.staging? # effective only in staging environment
 
   ActionRecipient.configure do |config|
+    config.format = 'your_address_to_redirect@your_domain.com' # address that the emails to be redirected
+  end
+
+  ActionMailer::Base.register_interceptor(ActionRecipient::Interceptor) # register it as interceptor
+end
+```
+
+If your colleague (in staging environment) accidentally send an email to `admin@your_client.com`, this gem overwrites its addresses as `your_address_to_redirect+admin_at_your_client.com@gmail.com` with help of ActionMailer's interceptor.
+
+### Whitelist
+
+Let's say, you wish to trap any outgoing emails, with a few exceptions, e.g. `my_personal_adddress@example.com` that has to be actually delivered without interception.
+
+You can' whitelist' such email addresses:
+
+```ruby
+# config/initializers/action_recipient.rb
+
+if Rails.env.staging?
+
+  ActionRecipient.configure do |config|
     config.format = 'your_address_to_redirect+%s@gmail.com'
 
+    # specify whitelisted addresses  as follows
     config.whitelist.addresses = [
       'safe_address@example.com',
       'my_personal_adddress@example.com'
@@ -55,11 +75,29 @@ if Rails.env.staging? # effective only in staging environment
 end
 ```
 
-Then, if you send an email to `admin@your_client.com` using ActionMailer, this gem traps it and overwrites its addresses as `your_address_to_redirect+admin_at_your_client.com@gmail.com`.
+### Using Gmail
 
-You can find the email at your mailbox in `your_address_to_redirect@gmail.com`, just as your client would do if it were in production - with the only difference in its `to` address that are slightly modified.
+You might wish to keep original recipient addresses somehow, so that you can confirm where the email must have been delivered to unless it gets trapped.
 
-### Detailed Settings
+This gem accepts a format where `%s` are dynamically replaced with the original address, prefixed with type of destination field (`to`, `cc`, or `bcc`).
+
+
+```ruby
+# config/initializers/action_recipient.rb
+
+if Rails.env.staging? # effective only in staging environment
+
+  ActionRecipient.configure do |config|
+    config.format = 'your_address_to_redirect+%s@gmail.com' # destination type and original address will be appended after your address
+  end
+
+  ActionMailer::Base.register_interceptor(ActionRecipient::Interceptor)
+end
+```
+
+This feature is particularity useful if you use gmail - as it ignores any strings that follow after a plus (+) sign appended in your address.
+
+## Detailed Settings
 
 1. set your "safe address" to indicate ActionRecipient an address to redirect outgoing emails:
 
@@ -122,6 +160,11 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/fursich/action_recipient.
+
+## Acknoledgement
+
+I'd like to thank @akeyhero who came up with the original idea about appending recipient information after plus leveraging gmail feature.
+Although the implementation work is done by myself seperately, this gem greatly benefited from his inspiring idea.
 
 ## License
 
