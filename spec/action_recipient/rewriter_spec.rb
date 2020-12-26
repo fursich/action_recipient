@@ -170,24 +170,43 @@ RSpec.describe ActionRecipient::Rewriter do
 
   describe '.whitelisted?' do
     subject { described_class.whitelisted?(address) }
-    let(:address) { 'foo@example.com' }
-    it { is_expected.to be false }
+
+    context 'when no whitelist is specified' do
+      let(:address) { 'foo@example.com' }
+      it { is_expected.to be false }
+    end
 
     context 'when address list is specified' do
       before do
         ActionRecipient.config.whitelist.addresses = custom_whitelist
       end
 
-      let(:custom_whitelist) { ['foo@example.com', 'bar@example.com'] }
+      context 'with string matcher' do
+        let(:custom_whitelist) { ['foo@example.com'] }
 
-      context 'with a whitelisted address' do
-        let(:address) { 'foo@example.com' }
-        it { is_expected.to be true }
+        context 'with a whitelisted address' do
+          let(:address) { 'foo@example.com' }
+          it { is_expected.to be true }
+        end
+
+        context 'with non-whitelisted address' do
+          let(:address) { 'bar@example.com' }
+          it { is_expected.to be false }
+        end
       end
 
-      context 'with non-whitelisted address' do
-        let(:address) { 'foo1@example.com' }
-        it { is_expected.to be false }
+      context 'with regexp matcher' do
+        let(:custom_whitelist) { [/foo@example\.(co\.jp|com)/] }
+
+        context 'with a whitelisted address' do
+          let(:address) { 'foo@example.comjp' }
+          it { is_expected.to be true }
+        end
+
+        context 'with non-whitelisted address' do
+          let(:address) { 'foo_100@example.com' }
+          it { is_expected.to be false }
+        end
       end
     end
 
@@ -196,15 +215,171 @@ RSpec.describe ActionRecipient::Rewriter do
         ActionRecipient.config.whitelist.domains = custom_whitelist
       end
 
-      let(:custom_whitelist) { %w[foo.com bar.jp] }
+      context 'with string matcher' do
+        let(:custom_whitelist) { ['example.com'] }
 
-      context 'with a whitelisted address' do
-        let(:address) { 'foo@foo.com' }
+        context 'with a whitelisted domain' do
+          let(:address) { 'foo@example.com' }
+          it { is_expected.to be true }
+        end
+
+        context 'with non-whitelisted domain' do
+          let(:address) { 'foo@example.com.jp' }
+          it { is_expected.to be false }
+        end
+      end
+
+      context 'with regexp matcher' do
+        let(:custom_whitelist) { [/example/] }
+
+        context 'with a whitelisted domain' do
+          let(:address) { 'foo@example.com' }
+          it { is_expected.to be true }
+        end
+
+        context 'with non-whitelisted domain' do
+          let(:address) { 'example@sample.com' }
+          it { is_expected.to be false }
+        end
+      end
+    end
+  end
+
+  describe '.match_with_any_whitelisted_addresses?' do
+    subject { described_class.match_with_any_whitelisted_addresses?(address) }
+
+    before do
+      ActionRecipient.config.whitelist.addresses = custom_whitelist
+    end
+
+    context 'with String matcher' do
+      let(:custom_whitelist) { ['foo@example.com'] }
+
+      context 'with a parfect matching address' do
+        let(:address) { 'foo@example.com' }
         it { is_expected.to be true }
       end
 
-      context 'with non-whitelisted address' do
-        let(:address) { 'foo@foo.jp' }
+      context 'with a partially matching address' do
+        context 'with forward matching address' do
+          let(:address) { 'foo@example.co' }
+          it { is_expected.to be false }
+        end
+
+        context 'with backward matching address' do
+          let(:address) { 'o@example.com' }
+          it { is_expected.to be false }
+        end
+      end
+
+      context 'with an address containing one of the whitelisted addresses' do
+        let(:address) { 'foo@example.com.com' }
+        it { is_expected.to be false }
+      end
+
+      context 'with non-matching address' do
+        let(:address) { 'bar@example.co.jp' }
+        it { is_expected.to be false }
+      end
+    end
+
+    context 'with Regexp matcher' do
+      let(:custom_whitelist) { [/foo@example.com/] }
+
+      context 'with a parfect matching address' do
+        let(:address) { 'foo@example.com' }
+        it { is_expected.to be true }
+      end
+
+      context 'with a partially matching address' do
+        context 'with forward matching address' do
+          let(:address) { 'foo@example.co' }
+          it { is_expected.to be false }
+        end
+
+        context 'with backward matching address' do
+          let(:address) { 'o@example.com' }
+          it { is_expected.to be false }
+        end
+      end
+
+      context 'with an address containing one of the whitelisted addresses' do
+        let(:address) { 'foo.foo@example.com.com' }
+        it { is_expected.to be true }
+      end
+
+      context 'with non-matching address' do
+        let(:address) { 'bar@example.co.jp' }
+        it { is_expected.to be false }
+      end
+    end
+  end
+
+  describe '.match_with_any_whitelisted_domains?' do
+    subject { described_class.match_with_any_whitelisted_domains?(domain) }
+
+    before do
+      ActionRecipient.config.whitelist.domains = custom_whitelist
+    end
+
+    context 'with String matcher' do
+      let(:custom_whitelist) { ['example.com'] }
+
+      context 'with a parfect matching domain' do
+        let(:domain) { 'example.com' }
+        it { is_expected.to be true }
+      end
+
+      context 'with a partially matching domain' do
+        context 'with forward matching domain' do
+          let(:domain) { 'example.co' }
+          it { is_expected.to be false }
+        end
+
+        context 'with backward matching domain' do
+          let(:domain) { 'xample.com' }
+          it { is_expected.to be false }
+        end
+      end
+
+      context 'with an domain containing one of the whitelisted domaines' do
+        let(:domain) { 'subdomain.example.com' }
+        it { is_expected.to be false }
+      end
+
+      context 'with non-matching domain' do
+        let(:domain) { 'example.co.jp' }
+        it { is_expected.to be false }
+      end
+    end
+
+    context 'with Regexp matcher' do
+      let(:custom_whitelist) { [/example.com\z/] }
+
+      context 'with a parfect matching domain' do
+        let(:domain) { 'example.com' }
+        it { is_expected.to be true }
+      end
+
+      context 'with a partially matching domain' do
+        context 'with forward matching domain' do
+          let(:domain) { 'example.co' }
+          it { is_expected.to be false }
+        end
+
+        context 'with backward matching domain' do
+          let(:domain) { 'xample.com' }
+          it { is_expected.to be false }
+        end
+      end
+
+      context 'with an domain containing one of the whitelisted domaines' do
+        let(:domain) { 'subdomain.example.com' }
+        it { is_expected.to be true }
+      end
+
+      context 'with non-matching domain' do
+        let(:domain) { 'example.co.jp' }
         it { is_expected.to be false }
       end
     end

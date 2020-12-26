@@ -52,9 +52,9 @@ If your colleague (in staging environment) accidentally send an email to `admin@
 
 ### Whitelist
 
-Let's say, you wish to trap any outgoing emails, with a few exceptions, e.g. `my_personal_adddress@example.com` that has to be actually delivered without interception.
+Let's say, you wish to trap any outgoing emails, with an exception, e.g. `my_personal_adddress@example.com` that has to be actually delivered without interception.
 
-You can' whitelist' such email addresses:
+You can' whitelist' such email addresses as follows:
 
 ```ruby
 # config/initializers/action_recipient.rb
@@ -66,14 +66,36 @@ if Rails.env.staging?
 
     # specify whitelisted addresses  as follows
     config.whitelist.addresses = [
-      'safe_address@example.com',
-      'my_personal_adddress@example.com'
+      'safe_address@my-company.com',
+      'my_personal_adddress@my-company.com'
     ]
   end
 
   ActionMailer::Base.register_interceptor(ActionRecipient::Interceptor)
 end
 ```
+
+You can also whitelist all the emails that belong to perticular domain:
+
+```ruby
+ActionRecipient.configure do |config|
+  config.whitelist.domains = [
+    'my-company.com'
+  ]
+end
+```
+
+Note: With a string matcher, you can whitelist only an address that has perfect match with it. If you prefer to whitelist all the addresses that belong to **any subdomains** under a specific domain, use regular expression instead.
+
+```ruby
+ActionRecipient.configure do |config|
+  config.whitelist.domains = [
+    'my-company.com\z'
+  ]
+end
+```
+
+This way an address such as `somebody@sales.my-company.com` is whitelisted, thus can deliver an out-going emails without getting trapped.
 
 ### Using Gmail
 
@@ -116,13 +138,13 @@ If you add **%s** in the format, it is automatically replaced with the original 
 ```ruby
   ActionRecipient.configure do |config|
     config.whitelist.addresses = [
-      'my_personal_address@example.com',
-      'my_colleagues_address@example.com'
+      'my_colleagues_address@my-workplace.com'
+      'a-contractor@somebody.net',
     ]
 
     config.whitelist.domains = [
-      'my_office_domain.com',
-      'subdomain.my_office_domain.com'
+      'my-department.my-workplace.com',
+      /my-private-domain.com\z/
     ]
   end
 ```
@@ -130,9 +152,11 @@ If you add **%s** in the format, it is automatically replaced with the original 
 Whitelisted emails addresses are not overwritten, thus can be delivered as usual.
 
 IMPORTANT:
-With current version (version <~ 0.2.0) "domains" are the last part of email addresses after `@`, and matched with original email address literally on word-to-word basis.
+"domains" are the last part of email addresses after `@`, and matched with original email address literally on word-to-word basis.
 
 So whitelisted domains such as `bar.com` does NOT whitelist emails to subdomains like `somebody@foo.bar.com` (therefore redirected).
+
+If you wish to whitelist a domain including all the subdomains under it, use regular expressions as [described earlier](#detailed-settings)
 
 3. register ActionRecipient as the interceptor
 

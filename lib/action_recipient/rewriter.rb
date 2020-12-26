@@ -19,7 +19,19 @@ module ActionRecipient
       end
 
       def whitelisted?(email)
-        whitelist.addresses.include?(email) || whitelist.domains.include?(domain_for(email))
+        match_with_any_whitelisted_addresses?(email) || match_with_any_whitelisted_domains?(domain_for(email))
+      end
+
+      def match_with_any_whitelisted_addresses?(email)
+        whitelist.addresses.any? { |string_or_regexp|
+          string_or_regexp === email
+        }
+      end
+
+      def match_with_any_whitelisted_domains?(domain)
+        whitelist.domains.any? { |string_or_regexp|
+          string_or_regexp === domain
+        }
       end
 
       def whitelist
