@@ -90,7 +90,8 @@ Note: With a string matcher, you can whitelist only an address that has perfect 
 ```ruby
 ActionRecipient.configure do |config|
   config.whitelist.domains = [
-    'my-company.com\z'
+    'my-company.com',      # exact match
+    /\.my-company.com\z/,  # any subdomains
   ]
 end
 ```
@@ -144,7 +145,7 @@ If you add **%s** in the format, it is automatically replaced with the original 
 
     config.whitelist.domains = [
       'my-department.my-workplace.com',
-      /my-private-domain.com\z/
+      /(\.|\A)my-private-domain.com\z/
     ]
   end
 ```
